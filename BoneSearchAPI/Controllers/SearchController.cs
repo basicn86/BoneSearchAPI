@@ -46,7 +46,7 @@ namespace BoneSearchAPI.Controllers
             foreach (KeyValuePair<int, int> entry in pageIDs)
             {
                 //create mysqlcommand object
-                MySqlCommand cmd = new MySqlCommand("SELECT domain.name, domain.https, path, title FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id;", con);
+                MySqlCommand cmd = new MySqlCommand("SELECT domain.name, domain.https, path, title FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
 
                 //bind the parameter
                 cmd.Parameters.AddWithValue("@page_id", entry.Key);
