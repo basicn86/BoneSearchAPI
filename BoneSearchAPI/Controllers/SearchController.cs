@@ -10,6 +10,8 @@ namespace BoneSearchAPI.Controllers
     [ApiController]
     public class SearchController : ControllerBase
     {
+        private const string CONNECTION_STRING = "server=localhost;database=searchv2;user=api;password=";
+
         [HttpGet]
         public IEnumerable<SearchResult> Get(string terms)
         {
@@ -38,7 +40,7 @@ namespace BoneSearchAPI.Controllers
         private List<SearchResult> ConvertPageIDsToSearchResults(Dictionary<int, int> pageIDs)
         {
             List<SearchResult> result = new List<SearchResult>();
-            using MySqlConnection con = new MySqlConnection("server=localhost;database=searchv2;user=root;password=");
+            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
             con.Open();
 
 
@@ -46,7 +48,8 @@ namespace BoneSearchAPI.Controllers
             foreach (KeyValuePair<int, int> entry in pageIDs)
             {
                 //create mysqlcommand object
-                MySqlCommand cmd = new MySqlCommand("SELECT domain.name, domain.https, path, title FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
+                //TODO: modify this command to use "where in" instead of just "where"
+                MySqlCommand cmd = new MySqlCommand("SELECT domain.name as domain_name, domain.https as domain_https, path, title FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
 
                 //bind the parameter
                 cmd.Parameters.AddWithValue("@page_id", entry.Key);
@@ -59,7 +62,9 @@ namespace BoneSearchAPI.Controllers
                 {
                     SearchResult searchResult = new SearchResult();
                     searchResult.title = reader.GetString("title");
-                    searchResult.url = reader.GetString("path");
+                    searchResult.https = reader.GetBoolean("domain_https");
+                    searchResult.domain = reader.GetString("domain_name");
+                    searchResult.path = reader.GetString("path");
                     
                     result.Add(searchResult);
                 }
@@ -82,7 +87,7 @@ namespace BoneSearchAPI.Controllers
         {
             Dictionary<int, int> wordRelevance = new Dictionary<int, int>();
 
-            using MySqlConnection con = new MySqlConnection("server=localhost;database=searchv2;user=root;password=");
+            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
             con.Open();
 
             foreach (int word in wordID)
@@ -123,7 +128,7 @@ namespace BoneSearchAPI.Controllers
             string[] words = _input.Split(' ');
             List<int> wordID = new List<int>();
 
-            using MySqlConnection con = new MySqlConnection("server=localhost;database=searchv2;user=root;password=");
+            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
             con.Open();
 
             foreach (string word in words)
