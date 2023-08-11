@@ -49,7 +49,7 @@ namespace BoneSearchAPI.Controllers
             {
                 //create mysqlcommand object
                 //TODO: modify this command to use "where in" instead of just "where"
-                MySqlCommand cmd = new MySqlCommand("SELECT domain.name as domain_name, domain.https as domain_https, path, title FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
+                MySqlCommand cmd = new MySqlCommand("SELECT domain.name as domain_name, domain.https as domain_https, path, title, meta_desc FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
 
                 //bind the parameter
                 cmd.Parameters.AddWithValue("@page_id", entry.Key);
@@ -65,6 +65,7 @@ namespace BoneSearchAPI.Controllers
                     searchResult.https = reader.GetBoolean("domain_https");
                     searchResult.domain = reader.GetString("domain_name");
                     searchResult.path = reader.GetString("path");
+                    searchResult.metadesc = reader.GetString("meta_desc");
                     
                     result.Add(searchResult);
                 }
