@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySql.Data.MySqlClient;
+using System.Text.Encodings.Web;
+using System.Web;
 
 namespace BoneSearchAPI.Controllers
 {
@@ -10,7 +12,7 @@ namespace BoneSearchAPI.Controllers
     [ApiController]
     public class SearchController : ControllerBase
     {
-        private const string CONNECTION_STRING = "server=localhost;database=searchv2;user=api;password=";
+        private const string CONNECTION_STRING = "server=localhost;database=searchv3;user=api;password=";
 
         [HttpGet]
         public IEnumerable<SearchResult> Get(string terms)
@@ -62,10 +64,14 @@ namespace BoneSearchAPI.Controllers
                 {
                     SearchResult searchResult = new SearchResult();
                     searchResult.title = reader.GetString("title");
+                    //entitize the title
+                    searchResult.title = System.Net.WebUtility.HtmlEncode(searchResult.title);
                     searchResult.https = reader.GetBoolean("domain_https");
                     searchResult.domain = reader.GetString("domain_name");
                     searchResult.path = reader.GetString("path");
                     searchResult.metadesc = reader.GetString("meta_desc");
+                    //entitize the metadesc
+                    searchResult.metadesc = System.Net.WebUtility.HtmlEncode(searchResult.metadesc);
                     
                     result.Add(searchResult);
                 }
