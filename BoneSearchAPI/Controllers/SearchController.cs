@@ -29,22 +29,31 @@ namespace BoneSearchAPI.Controllers
                 throw new ArgumentException("Terms cannot be empty", nameof(terms));
             }
 
-            List<int> wordID = ConvertStringToIDs(terms);
-            Dictionary<int, int> wordRelevance = GetWordRelevance(wordID);
-            List<SearchResult> searchResults = ConvertPageIDsToSearchResults(wordRelevance);
+            //declare MySQL connection
+            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
+            con.Open();
+
+            //start a stopwatch
+            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
+            stopwatch.Start();
+
+            List<int> wordID = ConvertStringToIDs(con, terms);
+            Dictionary<int, int> wordRelevance = GetWordRelevance(con, wordID);
+            List<SearchResult> searchResults = ConvertPageIDsToSearchResults(con, wordRelevance);
 
             //set the response type to application/json
             Response.ContentType = "application/json";
 
+            //end the stopwatch and print the elapsed time in ms
+            stopwatch.Stop();
+            Console.WriteLine("Elapsed time: " + stopwatch.ElapsedMilliseconds + "ms");
+
             return searchResults;
         }
         
-        private List<SearchResult> ConvertPageIDsToSearchResults(Dictionary<int, int> pageIDs)
+        private List<SearchResult> ConvertPageIDsToSearchResults(MySqlConnection con, Dictionary<int, int> pageIDs)
         {
             List<SearchResult> result = new List<SearchResult>();
-            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
-            con.Open();
-
 
             //loop through each pageID in the dictionary
             foreach (KeyValuePair<int, int> entry in pageIDs)
@@ -90,12 +99,9 @@ namespace BoneSearchAPI.Controllers
         }
 
         //Get word relevance from list of word IDs
-        private Dictionary<int, int> GetWordRelevance(List<int> wordID)
+        private Dictionary<int, int> GetWordRelevance(MySqlConnection con, List<int> wordID)
         {
             Dictionary<int, int> wordRelevance = new Dictionary<int, int>();
-
-            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
-            con.Open();
 
             foreach (int word in wordID)
             {
@@ -130,13 +136,10 @@ namespace BoneSearchAPI.Controllers
             return wordRelevance;
         }
        
-        private List<int> ConvertStringToIDs(string _input)
+        private List<int> ConvertStringToIDs(MySqlConnection con, string _input)
         {
             string[] words = _input.Split(' ');
             List<int> wordID = new List<int>();
-
-            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
-            con.Open();
 
             foreach (string word in words)
             {
@@ -157,8 +160,6 @@ namespace BoneSearchAPI.Controllers
 
                 reader.Close();
             }
-
-            con.Close();
 
             return wordID;
         }
