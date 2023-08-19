@@ -33,20 +33,12 @@ namespace BoneSearchAPI.Controllers
             using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
             con.Open();
 
-            //start a stopwatch
-            System.Diagnostics.Stopwatch stopwatch = new System.Diagnostics.Stopwatch();
-            stopwatch.Start();
-
             List<int> wordID = ConvertStringToIDs(con, terms);
             Dictionary<int, int> wordRelevance = GetWordRelevance(con, wordID);
             List<SearchResult> searchResults = ConvertPageIDsToSearchResults(con, wordRelevance);
 
             //set the response type to application/json
             Response.ContentType = "application/json";
-
-            //end the stopwatch and print the elapsed time in ms
-            stopwatch.Stop();
-            Console.WriteLine("Elapsed time: " + stopwatch.ElapsedMilliseconds + "ms");
 
             return searchResults;
         }
