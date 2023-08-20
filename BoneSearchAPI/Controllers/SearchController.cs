@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MySql.Data.MySqlClient;
+using System.Data;
 using System.Text.Encodings.Web;
 using System.Web;
 
@@ -29,22 +30,23 @@ namespace BoneSearchAPI.Controllers
                 throw new ArgumentException("Terms cannot be empty", nameof(terms));
             }
 
-            List<int> wordID = ConvertStringToIDs(terms);
-            Dictionary<int, int> wordRelevance = GetWordRelevance(wordID);
-            List<SearchResult> searchResults = ConvertPageIDsToSearchResults(wordRelevance);
+            //declare MySQL connection
+            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
+            con.Open();
+
+            List<int> wordID = ConvertStringToIDs(con, terms);
+            Dictionary<int, int> wordRelevance = GetWordRelevance(con, wordID);
+            List<SearchResult> searchResults = ConvertPageIDsToSearchResults(con, wordRelevance);
 
             //set the response type to application/json
             Response.ContentType = "application/json";
 
             return searchResults;
         }
-        
-        private List<SearchResult> ConvertPageIDsToSearchResults(Dictionary<int, int> pageIDs)
+
+        private List<SearchResult> ConvertPageIDsToSearchResults(MySqlConnection con, Dictionary<int, int> pageIDs)
         {
             List<SearchResult> result = new List<SearchResult>();
-            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
-            con.Open();
-
 
             //loop through each pageID in the dictionary
             foreach (KeyValuePair<int, int> entry in pageIDs)
@@ -72,7 +74,7 @@ namespace BoneSearchAPI.Controllers
                     searchResult.metadesc = reader.GetString("meta_desc");
                     //entitize the metadesc
                     searchResult.metadesc = System.Net.WebUtility.HtmlEncode(searchResult.metadesc);
-                    
+
                     result.Add(searchResult);
                 }
 
@@ -90,75 +92,104 @@ namespace BoneSearchAPI.Controllers
         }
 
         //Get word relevance from list of word IDs
-        private Dictionary<int, int> GetWordRelevance(List<int> wordID)
+        private Dictionary<int, int> GetWordRelevance(MySqlConnection con, List<int> wordID)
         {
             Dictionary<int, int> wordRelevance = new Dictionary<int, int>();
 
-            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
-            con.Open();
+            //create the command string
+            string cmdString = "SELECT page_id, sum(score) as total_score FROM word_relevance WHERE word_id IN (";
 
-            foreach (int word in wordID)
+            //iterate through the wordID list
+            for (int i = 0; i < wordID.Count; i++)
             {
-                //create mysqlcommand object
-                MySqlCommand cmd = new MySqlCommand("SELECT page_id, score FROM word_relevance WHERE word_id=@word_id ORDER BY score DESC", con);
+                cmdString += "@" + i;
 
-                //bind the parameter
-                cmd.Parameters.AddWithValue("@word_id", word);
-
-                //execute the query
-                var reader = cmd.ExecuteReader();
-
-                //read the result
-                while (reader.Read())
+                //if the next iteration is the length of the array, then we don't need a comma
+                if (i != wordID.Count - 1)
                 {
-                    int page_id = reader.GetInt32("page_id");
-                    int score = reader.GetInt32("score");
-
-                    if (wordRelevance.ContainsKey(page_id))
-                    {
-                        wordRelevance[page_id] += score;
-                    }else
-                    {
-                        wordRelevance.Add(page_id, score);
-                    }
+                    cmdString += ", ";
                 }
-
-                //close the reader
-                reader.Close();
             }
+
+            //finish the command string
+            cmdString += ") group by page_id ORDER BY total_score DESC";
+
+            //create mysqlcommand object
+            MySqlCommand cmd = new MySqlCommand(cmdString, con);
+            
+            //bind the parameters
+            for (int i = 0; i < wordID.Count; i++)
+            {
+                cmd.Parameters.AddWithValue("@" + i, wordID[i]);
+            }
+
+            //execute the query
+            var reader = cmd.ExecuteReader();
+
+            //read the result
+            while (reader.Read())
+            {
+                int page_id = reader.GetInt32("page_id");
+                int score = reader.GetInt32("total_score");
+
+                if (wordRelevance.ContainsKey(page_id))
+                {
+                    wordRelevance[page_id] += score;
+                }
+                else
+                {
+                    wordRelevance.Add(page_id, score);
+                }
+            }
+
+            //close the reader
+            reader.Close();
 
             return wordRelevance;
         }
-       
-        private List<int> ConvertStringToIDs(string _input)
+
+        private List<int> ConvertStringToIDs(MySqlConnection con, string _input)
         {
             string[] words = _input.Split(' ');
             List<int> wordID = new List<int>();
 
-            using MySqlConnection con = new MySqlConnection(CONNECTION_STRING);
-            con.Open();
+            //command string
+            string cmdString = "SELECT id FROM word WHERE word IN (";
 
-            foreach (string word in words)
+            //iterate through each word
+            for (int i = 0; i < words.Length; i++)
             {
-                //create mysqlcommand object
-                MySqlCommand cmd = new MySqlCommand("SELECT id FROM word WHERE word.word = @word", con);
+                cmdString += "@" + i;
 
-                //bind the parameter
-                cmd.Parameters.AddWithValue("@word", word);
-
-                //execute the query
-                var reader = cmd.ExecuteReader();
-
-                //read the result
-                while (reader.Read())
+                //if the next iteration is the length of the array, then we don't need a comma
+                if (i != words.Length - 1)
                 {
-                    wordID.Add(reader.GetInt32(0));
+                    cmdString += ", ";
                 }
-
-                reader.Close();
             }
 
-            con.Close();
+            //close the command string
+            cmdString += ");";
+
+            //create mysqlcommand object
+            MySqlCommand cmd = new MySqlCommand(cmdString, con);
+
+            //bind the parameters
+            for (int i = 0; i < words.Length; i++)
+            {
+                cmd.Parameters.AddWithValue("@" + i, words[i]);
+            }
+
+            //execute the query
+            var reader = cmd.ExecuteReader();
+
+            //read the result
+            while (reader.Read())
+            {
+                wordID.Add(reader.GetInt32(0));
+            }
+
+            reader.Close();
 
             return wordID;
         }
