@@ -44,6 +44,33 @@ namespace BoneSearchAPI.Controllers
             return searchResults;
         }
 
+        //function to convert category ID to category name
+        //single use function, connection disposes after conversion
+        private string ConvertCategoryIDToName(MySqlConnection con, int categoryID)
+        {
+            //duplicate the connection
+            using MySqlConnection con2 = new MySqlConnection(CONNECTION_STRING);
+            con2.Open(); //open the connection
+
+            //create mysqlcommand object
+            using MySqlCommand cmd = new MySqlCommand("SELECT name FROM category WHERE id=@category_id", con2);
+
+            //bind the parameter
+            cmd.Parameters.AddWithValue("@category_id", categoryID);
+
+            //execute the query
+            var reader = cmd.ExecuteReader();
+
+            //read the result
+            reader.Read();
+            string category = reader.GetString("name");
+
+            //close the reader
+            reader.Close();
+
+            return category;
+        }
+
         private List<SearchResult> ConvertPageIDsToSearchResults(MySqlConnection con, Dictionary<int, int> pageIDs)
         {
             List<SearchResult> result = new List<SearchResult>();
@@ -53,7 +80,7 @@ namespace BoneSearchAPI.Controllers
             {
                 //create mysqlcommand object
                 //TODO: modify this command to use "where in" instead of just "where"
-                MySqlCommand cmd = new MySqlCommand("SELECT domain.name as domain_name, domain.https as domain_https, path, title, meta_desc FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
+                MySqlCommand cmd = new MySqlCommand("SELECT domain.name as domain_name, domain.https as domain_https, domain.category_id as domain_category, path, title, meta_desc FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
 
                 //bind the parameter
                 cmd.Parameters.AddWithValue("@page_id", entry.Key);
@@ -74,6 +101,16 @@ namespace BoneSearchAPI.Controllers
                     searchResult.metadesc = reader.GetString("meta_desc");
                     //entitize the metadesc
                     searchResult.metadesc = System.Net.WebUtility.HtmlEncode(searchResult.metadesc);
+
+                    //try to get the category ID of the domain
+                    try
+                    {
+                        searchResult.category = ConvertCategoryIDToName(con, reader.GetInt32("domain_category"));
+                    }
+                    catch (Exception)
+                    {
+                        searchResult.category = "&quest;";
+                    }
 
                     result.Add(searchResult);
                 }
