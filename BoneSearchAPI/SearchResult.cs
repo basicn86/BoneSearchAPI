@@ -14,5 +14,7 @@ namespace BoneSearchAPI
         public string path { get; set; }
         [JsonInclude]
         public string metadesc { get; set; }
+        [JsonInclude]
+        public string category { get; set; }
     }
 }
