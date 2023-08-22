@@ -46,7 +46,7 @@ namespace BoneSearchAPI.Controllers
 
         //function to convert category ID to category name
         //single use function, connection disposes after conversion
-        private string ConvertCategoryIDToName(MySqlConnection con, int categoryID)
+        private string ConvertCategoryIDToName(int categoryID)
         {
             //duplicate the connection
             using MySqlConnection con2 = new MySqlConnection(CONNECTION_STRING);
@@ -105,7 +105,7 @@ namespace BoneSearchAPI.Controllers
                     //try to get the category ID of the domain
                     try
                     {
-                        searchResult.category = ConvertCategoryIDToName(con, reader.GetInt32("domain_category"));
+                        searchResult.category = ConvertCategoryIDToName(reader.GetInt32("domain_category"));
                     }
                     catch (Exception)
                     {
