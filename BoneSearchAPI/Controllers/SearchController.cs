@@ -35,6 +35,11 @@ namespace BoneSearchAPI.Controllers
             con.Open();
 
             List<int> wordID = ConvertStringToIDs(con, terms);
+            //if the wordID list is empty, throw an error
+            if (wordID.Count == 0)
+            {
+                throw new Exception("No results found");
+            }
             Dictionary<int, int> wordRelevance = GetWordRelevance(con, wordID);
             List<SearchResult> searchResults = ConvertPageIDsToSearchResults(con, wordRelevance);
 
