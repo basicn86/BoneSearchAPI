@@ -13,7 +13,7 @@ namespace BoneSearchAPI.Controllers
     [ApiController]
     public class SearchController : ControllerBase
     {
-        private const string CONNECTION_STRING = "server=localhost;database=searchv3;user=api;password=";
+        private const string CONNECTION_STRING = "server=localhost;database=searchv3;user=api;password=;Pooling=true;minpoolsize=5;maxpoolsize=20;";
 
         [HttpGet]
         public IEnumerable<SearchResult> Get(string terms)
