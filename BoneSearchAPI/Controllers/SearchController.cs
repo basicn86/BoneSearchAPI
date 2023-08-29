@@ -115,7 +115,7 @@ namespace BoneSearchAPI.Controllers
                     //get the date
                     try
                     {
-                        searchResult.date = reader.GetDateTime("crawl_date").ToString("yyyy-MMM-dd");
+                        searchResult.date = reader.GetDateTime("crawl_date").ToString("dd-MMM-yyyy");
                     } catch (Exception)
                     {
                         searchResult.date = null;
