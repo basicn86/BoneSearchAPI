@@ -85,7 +85,7 @@ namespace BoneSearchAPI.Controllers
             {
                 //create mysqlcommand object
                 //TODO: modify this command to use "where in" instead of just "where"
-                MySqlCommand cmd = new MySqlCommand("SELECT domain.name as domain_name, domain.https as domain_https, domain.category_id as domain_category, path, title, meta_desc FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
+                MySqlCommand cmd = new MySqlCommand("SELECT domain.name as domain_name, domain.https as domain_https, domain.category_id as domain_category, path, title, meta_desc, crawl_date FROM page JOIN domain ON page.domain_id = domain.id WHERE page.id=@page_id limit 10;", con);
 
                 //bind the parameter
                 cmd.Parameters.AddWithValue("@page_id", entry.Key);
@@ -97,15 +97,29 @@ namespace BoneSearchAPI.Controllers
                 while (reader.Read())
                 {
                     SearchResult searchResult = new SearchResult();
+
                     searchResult.title = reader.GetString("title");
                     //entitize the title
                     searchResult.title = System.Net.WebUtility.HtmlEncode(searchResult.title);
+
                     searchResult.https = reader.GetBoolean("domain_https");
+
                     searchResult.domain = reader.GetString("domain_name");
+
                     searchResult.path = reader.GetString("path");
+
                     searchResult.metadesc = reader.GetString("meta_desc");
                     //entitize the metadesc
                     searchResult.metadesc = System.Net.WebUtility.HtmlEncode(searchResult.metadesc);
+
+                    //get the date
+                    try
+                    {
+                        searchResult.date = reader.GetDateTime("crawl_date").ToString("yyyy-MMM-dd");
+                    } catch (Exception)
+                    {
+                        searchResult.date = null;
+                    }
 
                     //try to get the category ID of the domain
                     try
