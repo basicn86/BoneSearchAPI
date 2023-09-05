@@ -168,7 +168,7 @@ namespace BoneSearchAPI.Controllers
             }
 
             //finish the command string
-            cmdString += ") group by page_id ORDER BY total_score DESC";
+            cmdString += ") group by page_id ORDER BY places DESC, total_score DESC";
 
             //create mysqlcommand object
             MySqlCommand cmd = new MySqlCommand(cmdString, con);
